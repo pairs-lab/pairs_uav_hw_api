@@ -8,3 +8,11 @@
 
 # Runtime-python
 *.pyc
+
+# build artifacts
+build/
+devel/
+install/
+log/
+.catkin_tools/
+packaging/output/
