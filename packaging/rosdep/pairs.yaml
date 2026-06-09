@@ -1,0 +1,7 @@
+# Local rosdep rules for PAIRS packages not in the public rosdep index (ROS 2 Jazzy).
+pairs_msgs:
+  ubuntu: [ros-jazzy-pairs-msgs]
+pairs_lib:
+  ubuntu: [ros-jazzy-pairs-lib]
+pairs_uav_hw_api:
+  ubuntu: [ros-jazzy-pairs-uav-hw-api]
