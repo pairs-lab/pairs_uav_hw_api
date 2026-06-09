@@ -3,9 +3,10 @@
 
   <name>pairs_uav_hw_api</name>
   <version>1.0.0</version>
-  <description>PAIRS UAV hardware API — plugin interface for flight controller communication</description>
+  <description>The pairs_uav_hw_api package</description>
 
   <maintainer email="canhthanh@vnu.edu.vn">Thanh Nguyen Canh</maintainer>
+  <author email="canhthanh@vnu.edu.vn">Thanh Nguyen Canh</author>
 
   <license>BSD 3-Clause</license>
 

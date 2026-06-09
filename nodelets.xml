@@ -1,0 +1,5 @@
+<library path="lib/libPairsUavHwApi_HwApi">
+  <class name="pairs_uav_hw_api/HwApiManager" type="pairs_uav_hw_api::HwApiManager" base_class_type="nodelet::Nodelet">
+    <description>PAIRS UAV HW API Manager</description>
+  </class>
+</library>

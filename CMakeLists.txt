@@ -4,9 +4,11 @@ project(pairs_uav_hw_api)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_definitions(-Wall -Wextra)
+add_definitions(-Wall)
+add_definitions(-Wextra)
 
 if(COVERAGE)
+  message(WARNING "building with --coverage, the performance might be limited")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
 endif()
@@ -23,11 +25,12 @@ set(CATKIN_DEPENDENCIES
   std_msgs
   )
 
-find_package(catkin REQUIRED COMPONENTS ${CATKIN_DEPENDENCIES})
+find_package(catkin REQUIRED COMPONENTS
+  ${CATKIN_DEPENDENCIES}
+  )
 
 set(LIBRARIES
-  PairsUavHwApi_HwApi
-  PairsUavHwApi_DummyApi
+  PairsUavHwApi_HwApi PairsUavHwApi_DummyApi
   )
 
 catkin_package(
@@ -36,17 +39,44 @@ catkin_package(
   CATKIN_DEPENDS ${CATKIN_DEPENDENCIES}
   )
 
-include_directories(include ${catkin_INCLUDE_DIRS})
+include_directories(
+  include
+  ${catkin_INCLUDE_DIRS}
+  )
 
-add_library(PairsUavHwApi_HwApi src/hw_api_manager.cpp)
+# PairsUavHwApi_HwApi
+
+add_library(PairsUavHwApi_HwApi
+  src/hw_api_manager.cpp
+  )
+
 add_dependencies(PairsUavHwApi_HwApi
-  ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(PairsUavHwApi_HwApi ${catkin_LIBRARIES})
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
+  )
 
-add_library(PairsUavHwApi_DummyApi src/dummy_api.cpp)
+target_link_libraries(PairsUavHwApi_HwApi
+  ${catkin_LIBRARIES}
+  )
+
+# DummyApi
+
+add_library(PairsUavHwApi_DummyApi
+  src/dummy_api.cpp
+  )
+
 add_dependencies(PairsUavHwApi_DummyApi
-  ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(PairsUavHwApi_DummyApi ${catkin_LIBRARIES})
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
+  )
+
+target_link_libraries(PairsUavHwApi_DummyApi
+  ${catkin_LIBRARIES}
+  )
+
+## --------------------------------------------------------------
+## |                           Install                          |
+## --------------------------------------------------------------
 
 install(TARGETS ${LIBRARIES}
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
