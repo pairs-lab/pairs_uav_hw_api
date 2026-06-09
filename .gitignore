@@ -1,6 +1,11 @@
-.catkin_tools/
-build/
-devel/
-logs/
+# ignore temp files
+*~
+doc
+
+# ignore vim temp files
+*.swp
+*.swo
+*.swn
+
+# Runtime-python
 *.pyc
-__pycache__/

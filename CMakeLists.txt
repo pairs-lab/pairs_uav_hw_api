@@ -1,67 +1,191 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.28)
 project(pairs_uav_hw_api)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_definitions(-Wall -Wextra)
+# 1 == use rclcpp::Timer implementation
+# 0 == use PAIRS's thread timer implementation
+set(USE_ROS_TIMER 0)
 
-if(COVERAGE)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
+if(${USE_ROS_TIMER})
+  MESSAGE(WARNING "[pairs_uav_hw_api]: Compiling with ROS Timers. This can cause high CPU load in runtime.")
 endif()
 
-set(CATKIN_DEPENDENCIES
-  cmake_modules
-  geometry_msgs
-  pairs_lib
-  pairs_msgs
-  nav_msgs
-  nodelet
-  roscpp
-  sensor_msgs
-  std_msgs
-  )
+# set the compile options to show code warnings
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
-find_package(catkin REQUIRED COMPONENTS ${CATKIN_DEPENDENCIES})
+if(ENABLE_COVERAGE)
+  message(WARNING "building for coverage, the performance might be limited")
+
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage -fprofile-arcs")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage -fprofile-arcs")
+
+  add_definitions("-O1")
+  add_definitions("-g")
+endif()
+
+set(DEPENDENCIES
+  ament_cmake
+  ament_cmake_ros
+  rclcpp
+  rclcpp_components
+  pluginlib
+  pairs_msgs
+  pairs_lib
+  geometry_msgs
+  nav_msgs
+  std_msgs
+  sensor_msgs
+  Eigen3
+  pairs_uav_testing
+  backward_ros
+)
 
 set(LIBRARIES
-  PairsUavHwApi_HwApi
+  PairsUavHwApi_HwApiManager
   PairsUavHwApi_DummyApi
-  )
+)
 
-catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES ${LIBRARIES}
-  CATKIN_DEPENDS ${CATKIN_DEPENDENCIES}
-  )
+foreach(DEP IN LISTS DEPENDENCIES)
+  find_package(${DEP} REQUIRED)
+endforeach()
 
-include_directories(include ${catkin_INCLUDE_DIRS})
+add_library(PairsUavHwApi_PairsUavHwApi INTERFACE)
+add_library(pairs_uav_hw_api::pairs_uav_hw_api ALIAS PairsUavHwApi_PairsUavHwApi)
+set_target_properties(PairsUavHwApi_PairsUavHwApi
+  PROPERTIES
+    EXPORT_NAME pairs_uav_hw_api
+    OUTPUT_NAME pairs_uav_hw_api
+)
+target_sources(PairsUavHwApi_PairsUavHwApi
+  INTERFACE FILE_SET HEADERS BASE_DIRS "include"
+  FILES
+    "include/pairs_uav_hw_api/api.h"
+    "include/pairs_uav_hw_api/common_handlers.h"
+    "include/pairs_uav_hw_api/publishers.h"
+)
+target_link_libraries(PairsUavHwApi_PairsUavHwApi
+  INTERFACE
+    rclcpp::rclcpp
+    pairs_lib::pairs_lib
+    ${pairs_msgs_TARGETS}
+    ${geometry_msgs_TARGETS}
+    ${nav_msgs_TARGETS}
+    ${sensor_msgs_TARGETS}
+)
 
-add_library(PairsUavHwApi_HwApi src/hw_api_manager.cpp)
-add_dependencies(PairsUavHwApi_HwApi
-  ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(PairsUavHwApi_HwApi ${catkin_LIBRARIES})
+# Hw API manager
 
-add_library(PairsUavHwApi_DummyApi src/dummy_api.cpp)
-add_dependencies(PairsUavHwApi_DummyApi
-  ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(PairsUavHwApi_DummyApi ${catkin_LIBRARIES})
+add_library(PairsUavHwApi_HwApiManager SHARED
+  src/hw_api_manager.cpp
+)
 
-install(TARGETS ${LIBRARIES}
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
-  )
+target_link_libraries(PairsUavHwApi_HwApiManager
+  PRIVATE
+    pairs_uav_hw_api::pairs_uav_hw_api
+    rclcpp::rclcpp
+    rclcpp_components::component
+    pluginlib::pluginlib
+    pairs_lib::pairs_lib
+    ${pairs_msgs_TARGETS}
+    ${geometry_msgs_TARGETS}
+    ${nav_msgs_TARGETS}
+    ${sensor_msgs_TARGETS}
+)
 
-install(DIRECTORY launch config
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-  )
+rclcpp_components_register_nodes(PairsUavHwApi_HwApiManager "pairs_uav_hw_api::HwApiManager")
 
-install(DIRECTORY include/pairs_uav_hw_api/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-  )
+target_compile_definitions(PairsUavHwApi_HwApiManager PRIVATE USE_ROS_TIMER=${USE_ROS_TIMER})
 
-install(FILES plugins.xml nodelets.xml
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-  )
+# Dummy API
+
+add_library(PairsUavHwApi_DummyApi SHARED
+  src/dummy_api.cpp
+)
+
+target_link_libraries(PairsUavHwApi_DummyApi
+  PRIVATE
+    pairs_uav_hw_api::pairs_uav_hw_api
+    rclcpp::rclcpp
+    rclcpp_components::component
+    pluginlib::pluginlib
+    pairs_lib::pairs_lib
+    ${pairs_msgs_TARGETS}
+    ${geometry_msgs_TARGETS}
+    ${nav_msgs_TARGETS}
+    ${sensor_msgs_TARGETS}
+)
+
+target_compile_definitions(PairsUavHwApi_DummyApi PRIVATE USE_ROS_TIMER=${USE_ROS_TIMER})
+
+## --------------------------------------------------------------
+## |                       Export plugins                       |
+## --------------------------------------------------------------
+
+# <package of the base class>, <relative path to the xml>
+pluginlib_export_plugin_description_file(pairs_uav_hw_api plugins.xml)
+
+## --------------------------------------------------------------
+## |                           testing                          |
+## --------------------------------------------------------------
+
+if(ENABLE_TESTS)
+
+  add_subdirectory(test)
+
+  if(NOT DEFINED ENV{IN_NIX_SHELL})
+    message(WARNING "Compiling lint tests")
+    find_package(ament_cmake_clang_format REQUIRED)
+    ament_clang_format(CONFIG_FILE "${PROJECT_SOURCE_DIR}/.clang-format")
+    find_package(ament_cmake_xmllint REQUIRED)
+    ament_xmllint()
+  endif()
+
+endif()
+
+## --------------------------------------------------------------
+## |                           Install                          |
+## --------------------------------------------------------------
+
+install(
+  TARGETS
+    PairsUavHwApi_PairsUavHwApi
+    ${LIBRARIES}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  FILE_SET HEADERS DESTINATION "include/${PROJECT_NAME}"
+)
+
+install(
+  DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(
+  DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}
+)
+
+ament_export_targets(
+  export_${PROJECT_NAME} HAS_LIBRARY_TARGET
+)
+
+ament_export_include_directories(
+  "include/${PROJECT_NAME}"
+)
+
+ament_export_libraries(
+  ${LIBRARIES}
+)
+
+ament_export_dependencies(
+  ${DEPENDENCIES}
+)
+
+ament_package()
