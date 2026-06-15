@@ -4,8 +4,6 @@ PAIRS UAV hardware API — the abstraction layer (pluginlib interface) between t
 PAIRS UAV System and a low-level flight controller. Provides the `PairsUavHwApi`
 plugin base class, the HwApiManager nodelet, and a dummy API implementation.
 
-Ported from the BSD-3-Clause [ctu-mrs/pairs_uav_hw_api](https://github.com/pairs-lab/pairs_uav_hw_api) (`pairs_*` → `pairs_*`).
-
 This is the **ros2** branch (ROS 2 Jazzy, ament_cmake). For ROS 1 Noetic, see the `ros1` branch.
 
 ## License
